@@ -283,7 +283,7 @@ function closeFeedbackModal() {
 function toggleFavorite(movieId, el) {
     fetch(`/movie/favorite/toggle/${movieId}`, {
         method: "POST",
-        credentials: "same-origin"   // ⭐ THIS IS THE FIX
+        credentials: "same-origin"   
     })
     .then(res => res.json())
     .then(data => {
