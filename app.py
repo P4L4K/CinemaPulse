@@ -1,6 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import uuid
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+from flask_mail import Mail, Message
+
+load_dotenv()  # loads .env file variables
 
 app = Flask(__name__)
 app.secret_key = "palak_cinemaPulse_secret_key"
@@ -62,6 +67,7 @@ feedbacks = [
 # ================= MOVIE ANALYTICS TABLE =================
 movie_analytics = {}
 
+# ================= HELPERS =================
 
 def default_analytics_payload():
     return {
@@ -71,7 +77,6 @@ def default_analytics_payload():
         "last_updated": None
     }
 
-# ================= HELPERS =================
 def is_logged_in():
     return "user_email" in session
 
@@ -105,6 +110,30 @@ def toggle_favorite(movie_id):
         "is_favorite": is_favorite,
         "total_favorites": len(favorites)
     })
+
+# ================= EMAIL CONFIG =================
+app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER")
+app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT"))
+app.config['MAIL_USE_TLS'] = os.getenv("MAIL_STARTTLS") == "True"
+app.config['MAIL_USE_SSL'] = os.getenv("MAIL_SSL_TLS") == "True"
+app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
+app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_FROM")
+
+mail = Mail(app)
+
+
+def send_email_notification(subject, message, to=None):
+    try:
+        if not to:
+            to = [app.config['MAIL_DEFAULT_SENDER']]  # default admin mailbox
+
+        msg = Message(subject, recipients=to)
+        msg.body = message
+        mail.send(msg)
+        print(f"[EMAIL SENT] {subject}")
+    except Exception as e:
+        print("Email error:", e)
 
 # ================= MOVIE RATING LOGIC =================
 def update_movie_rating(movie_id):
@@ -223,6 +252,10 @@ def register():
             "age_group": age_group,
             "favorites": []
         }
+        send_email_notification(
+            "New User Registration",
+            f"User {name} ({email}) registered on CinemaPulse."
+        )
         return redirect(url_for("login"))
 
     return render_template("register.html")
@@ -236,6 +269,10 @@ def login():
         user = users.get(email)
         if user and user["password"] == password:
             session["user_email"] = email
+            send_email_notification(
+                "User Login",
+                f"User {email} logged into CinemaPulse."
+            )
             return redirect(url_for("user_dashboard"))
         return "Invalid credentials"
 
@@ -330,6 +367,17 @@ def add_feedback():
         update_movie_analytics(movies[key]["id"])
         update_movie_rating(movies[key]["id"])
 
+        send_email_notification(
+            "New Feedback Added",
+            f"""
+User: {session['user_email']}
+Movie: {movie_name}
+Rating: {rating}
+Sentiment: {sentiment}
+Comment: {comment}
+"""
+        )
+
     return redirect(url_for("user_dashboard"))
 
 # ================= ADMIN AUTH =================
@@ -341,10 +389,14 @@ def admin_login():
 
         if email == "admin@example.com" and password == "admin123":
             session["admin_logged_in"] = True
+            send_email_notification(
+                "Admin Login",
+                f"Admin logged in using {email}"
+            )
             return redirect(url_for("admin_dashboard"))
 
         return "Invalid admin credentials"
-
+    
     return render_template("admin_login.html")
 
 # ================= ADMIN DASHBOARD =================
@@ -392,6 +444,11 @@ def add_movie():
     }
 
     movie_analytics[movie_id] = default_analytics_payload()
+
+    send_email_notification(
+        "New Movie Added",
+        f"Admin added a new movie:\n{name}\nGenre: {genre}\nLanguage: {language}"
+    )
 
     return redirect(url_for("admin_dashboard"))
 
@@ -446,6 +503,11 @@ def delete_movie():
         # Remove analytics
         if movie_id in movie_analytics:
             del movie_analytics[movie_id]
+
+        send_email_notification(
+            "Movie Deleted",
+            f"Admin deleted movie: {name}"
+        )
 
     return redirect(url_for("admin_dashboard"))
 
