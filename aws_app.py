@@ -143,7 +143,6 @@ This section:
 3. Creates initial analytics entries
 
 DO NOT RUN THIS AGAIN AFTER FIRST SUCCESSFUL EXECUTION.
-"""
 
 # Initial Movies
 initial_movies = [
@@ -174,7 +173,7 @@ print("Initial movies and analytics seeded successfully.")
 # ==========================================================
 # ================= END RUN ONLY ONCE ======================
 # ==========================================================
-
+"""
 # ================= PUBLIC =================
 @app.route("/")
 def home():
