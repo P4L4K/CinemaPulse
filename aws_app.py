@@ -11,7 +11,7 @@ app.secret_key = "palak_cinemaPulse_secret_key"
 # ================= AWS CONFIG =================
 REGION = "us-east-1"
 
-SNS_TOPIC_ARN = "arn:aws:sns:us-east-1:526562556656:CinemaPulse-Topic"
+SNS_TOPIC_ARN = "arn:aws:sns:us-east-1:288761745613:CinemaPulse-Topic"
 
 dynamodb = boto3.resource("dynamodb", region_name=REGION)
 sns = boto3.client("sns", region_name=REGION)
